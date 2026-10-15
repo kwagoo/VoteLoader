@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VoteLoader</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Salesforce ballot loader</p>
+      <h1>VoteLoader</h1>
+    </div>
+    <div id="session" class="session" hidden>
+      <div>
+        <p id="who" class="who"></p>
+        <p id="org" class="org"></p>
+      </div>
+      <button id="logout" type="button">Log out</button>
+    </div>
+  </header>
+
+  <main>
+    <p id="banner" class="banner" hidden></p>
+
+    <section id="connect-panel" class="card">
+      <h2>Connect to Salesforce</h2>
+      <p class="lede">Uses the ReleasePath Connected App. The callback stays <code id="redirect-uri">http://localhost:3000/api/org/salesforce/callback</code>.</p>
+      <p id="config-warning" class="warning" hidden></p>
+      <fieldset>
+        <legend>Login URL</legend>
+        <label><input type="radio" name="login" value="https://login.salesforce.com" checked> Production <span class="hint">login.salesforce.com</span></label>
+        <label><input type="radio" name="login" value="https://test.salesforce.com"> Sandbox <span class="hint">test.salesforce.com</span></label>
+        <label><input type="radio" name="login" value="custom"> Custom My Domain</label>
+        <input id="custom-domain" type="text" placeholder="https://mydomain.my.salesforce.com" autocomplete="off" disabled>
+      </fieldset>
+      <button id="connect" type="button">Connect to Salesforce</button>
+    </section>
+
+    <section id="upload-panel" class="card" hidden>
+      <h2>Ballot CSV</h2>
+      <p class="lede">Column A is the ballot number. Every other header must be a Candidate record ID. A cell with <strong>1</strong> is that ballot’s first preference. Blank cells are skipped.</p>
+      <label class="field">
+        Election record ID
+        <input id="election-id" type="text" spellcheck="false" placeholder="15- or 18-character Election__c ID" autocomplete="off">
+      </label>
+      <label class="field">
+        CSV file
+        <input id="csv-file" type="file" accept=".csv,text/csv">
+      </label>
+      <button id="preview-button" type="button">Preview</button>
+    </section>
+
+    <section id="preview-panel" class="card" hidden>
+      <h2>Preview</h2>
+      <p id="preview-summary"></p>
+      <div id="header-issues"></div>
+      <div id="row-issues"></div>
+      <label id="skip-label" class="check">
+        <input id="skip-flagged" type="checkbox">
+        Skip flagged rows
+      </label>
+      <p id="upload-hint" class="hint-block"></p>
+      <button id="upload-button" type="button" disabled>Upload to Salesforce</button>
+    </section>
+
+    <section id="progress-panel" class="card" hidden>
+      <h2>Upload</h2>
+      <p id="progress-text">Starting…</p>
+      <progress id="progress-bar" max="1" value="0"></progress>
+    </section>
+
+    <section id="summary-panel" class="card" hidden>
+      <h2>Summary</h2>
+      <dl id="summary-counts" class="counts"></dl>
+      <div id="failure-table"></div>
+      <button id="download-button" type="button">Download results CSV</button>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
