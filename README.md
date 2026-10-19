@@ -93,7 +93,9 @@ PowerShell can make a cookie secret:
 npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The Salesforce session stays in memory, and `COOKIE_SECRET` signs the cookie. Restarting VoteLoader logs you out.
+`npm start` reads `.env` from the project folder and opens [http://localhost:3000](http://localhost:3000) in the default browser. The Salesforce session stays in memory, and `COOKIE_SECRET` signs the cookie. Restarting VoteLoader logs you out.
+
+If `.env` or `COOKIE_SECRET` is missing, VoteLoader prints what to fix and waits for Enter before the window closes.
 
 Inserts use Salesforce REST API v59.0. Set `SALESFORCE_API_VERSION` (for example `62.0`) if the org needs a different version.
 
@@ -108,6 +110,42 @@ Inserts use Salesforce REST API v59.0. Set `SALESFORCE_API_VERSION` (for example
 6. Download the results CSV. It has one line per ballot row: the Vote ID or the error, and how many preferences were created or failed. Skipped rows are included.
 
 Running the file again creates new votes. It does not update votes already loaded.
+
+## Windows executable
+
+The downloadable app is `VoteLoader.exe`. It does not need Node.js installed. The file embeds the pages and a Node 22 runtime. It does not contain your `.env` or any Salesforce secrets.
+
+### Run the exe
+
+1. Copy `VoteLoader.exe` into a folder of its own.
+2. Copy `.env.example` to `.env` in that same folder and fill in the consumer key, consumer secret, and `COOKIE_SECRET`.
+3. Double-click `VoteLoader.exe`.
+
+The exe loads `.env` from its own folder (`path.dirname` of the executable), not from the project you built it in. The browser opens to `http://localhost:3000` (or whatever `PORT` is set to in that `.env`).
+
+Windows SmartScreen will warn you because the exe is not signed. The message is “Windows protected your PC”, and the publisher is shown as unknown. Choose **More info**, then **Run anyway**. That prompt stays until the exe is signed with a code-signing certificate.
+
+### Build the exe
+
+Building needs Node.js 22 or newer. Running the finished exe does not.
+
+```bat
+npm install
+npm run build:exe
+```
+
+The script uses `@yao-pkg/pkg` in SEA mode and writes `dist/VoteLoader.exe` for 64-bit Windows. `dist/` is not committed. Do not put `.env` in `public/` or in the `pkg` asset list. Secrets stay in the `.env` file next to the exe.
+
+### GitHub Release
+
+Pushing a tag that starts with `v` builds the exe on a Windows runner and attaches `VoteLoader.exe` to a GitHub Release for that tag:
+
+```bat
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+You can also run the “Windows executable” workflow by hand. Enter a tag such as `v1.0.0`. The workflow creates or updates that release and uploads the exe. The repository’s Actions permissions need to allow writing contents, which is what creates the release.
 
 ## CSV shape
 
@@ -133,4 +171,4 @@ Ballot papers,a01000000000001,a01000000000002,a01000000000003
 npm test
 ```
 
-The tests cover CSV parsing, the vote and preference mapping, validation, and the 200-record batches.
+The tests cover CSV parsing, the vote and preference mapping, validation, the 200-record batches, and where the exe loads `.env`.
