@@ -1,0 +1,68 @@
+name: Windows executable
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create or update, such as v1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Check the release tag
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v') {
+            Write-Error "The release tag must start with v."
+            exit 1
+          }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build VoteLoader.exe
+        run: npm run build:exe
+
+      - name: Confirm the executable is present and .env was not packed
+        shell: pwsh
+        run: |
+          if (Test-Path .env) {
+            Write-Error ".env is present in CI and must not be baked into the executable."
+            exit 1
+          }
+          if (-not (Test-Path dist/VoteLoader.exe)) {
+            Write-Error "dist/VoteLoader.exe was not created."
+            exit 1
+          }
+
+      - name: Attach VoteLoader.exe to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          files: dist/VoteLoader.exe
+          fail_on_unmatched_files: true
+          generate_release_notes: true

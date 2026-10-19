@@ -14,7 +14,11 @@ import {
   revokeToken,
 } from './salesforce.js';
 
-const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '../public');
+export function publicDirectory() {
+  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
+}
+
+const PUBLIC_DIR = publicDirectory();
 const PREVIEW_TTL_MS = 60 * 60 * 1000;
 
 export function readConfig(env = process.env) {
