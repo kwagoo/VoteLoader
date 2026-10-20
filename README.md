@@ -104,10 +104,10 @@ Inserts use Salesforce REST API v59.0. Set `SALESFORCE_API_VERSION` (for example
 3. Choose **Preview**. Nothing is inserted yet. The preview flags:
    - candidate headers that are not 15- or 18-character Salesforce IDs
    - rows with no `1`, or with more than one `1`
-   - cells that are not whole numbers from 0 through 999
+   - cells that are not whole numbers from 0 through 999 (a blank cell is allowed)
 4. To leave flagged rows out, check **Skip flagged rows**. Bad headers must be fixed; they cannot be skipped.
 5. Choose **Upload**. Votes are inserted 200 at a time with the sObject Collections API and `allOrNone` false, then preferences are inserted the same way. One rejected record does not stop the rest.
-6. Download the results CSV. It has one line per ballot row: the Vote ID or the error, and how many preferences were created or failed. Skipped rows are included.
+6. Download the results CSV. It has one line per ballot row: the Vote ID or the error, and how many preferences were created or failed. Blank cells count in those preference totals. Skipped rows are included.
 
 Running the file again creates new votes. It does not update votes already loaded.
 
@@ -134,7 +134,7 @@ npm install
 npm run build:exe
 ```
 
-The script uses `@yao-pkg/pkg` in SEA mode and writes `dist/VoteLoader.exe` for 64-bit Windows. `dist/` is not committed. Do not put `.env` in `public/` or in the `pkg` asset list. Secrets stay in the `.env` file next to the exe.
+The script uses `@yao-pkg/pkg` in SEA mode and writes `dist/VoteLoader.exe` for 64-bit Windows. It also copies `public/` into the executable. Windows sometimes cannot see those files at `C:\snapshot\...\public`, so the exe keeps a second copy inside its own script and serves the pages from that copy. `dist/` is not committed. Do not put `.env` in `public/` or in the `pkg` asset list. Secrets stay in the `.env` file next to the exe.
 
 ### GitHub Release
 
@@ -145,7 +145,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-You can also run the “Windows executable” workflow by hand. Enter a tag such as `v1.0.0`. The workflow creates or updates that release and uploads the exe. The repository’s Actions permissions need to allow writing contents, which is what creates the release.
+You can also run the “Windows executable” workflow by hand. Enter a tag such as `v1.0.0`. The workflow creates or updates that release and uploads the exe. On a pull request, and again before a release upload, it starts `VoteLoader.exe` and requests the home page, the stylesheet, and the page script. The repository’s Actions permissions need to allow writing contents, which is what creates the release.
 
 ## CSV shape
 
@@ -158,10 +158,10 @@ Ballot papers,a01000000000001,a01000000000002,a01000000000003
 
 - Column A is the ballot number. It is stored only in the results file, not on the Salesforce record (`Vote__c.Name` is an auto number).
 - Each other column header is a Candidate record ID.
-- A blank cell creates no `VotePreference__c`.
+- A blank cell still creates a `VotePreference__c`. `Vote__c` and `CandidateId__c` are set, and `NormalisedEntry__c` is null.
 - The column whose cell is `1` is `CurrentCandidate__c` and `FirstPreferenceCandidate__c`.
 - Every vote is created with `VoteType__c` = `Formal`, `CurrentTransferRound__c` = `1`, `PreviousCandidate__c` = null, and `Exhausted__c` = false.
-- Each preference gets `CandidateId__c` from the header and `NormalisedEntry__c` from the cell.
+- Each preference gets `CandidateId__c` from the header and `NormalisedEntry__c` from the cell, or null when the cell is blank.
 
 `examples/sample-ballots.csv` is a small file you can preview. The ballots numbered 3 and 4 are flagged on purpose.
 

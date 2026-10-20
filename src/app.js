@@ -18,6 +18,33 @@ export function publicDirectory() {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 }
 
+const PAGE_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+};
+
+export function servePages(pages) {
+  return (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      next();
+      return;
+    }
+    const name = req.path === '/' ? 'index.html' : req.path.slice(1);
+    if (!name || name.includes('/') || name.includes('\\') || !Object.hasOwn(pages, name)) {
+      next();
+      return;
+    }
+    res.setHeader('Content-Type', PAGE_TYPES[path.extname(name)] || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    if (req.method === 'HEAD') {
+      res.end();
+      return;
+    }
+    res.send(pages[name]);
+  };
+}
+
 const PUBLIC_DIR = publicDirectory();
 const PREVIEW_TTL_MS = 60 * 60 * 1000;
 
@@ -344,7 +371,11 @@ export function createApp(options = {}) {
     }
   });
 
-  app.use(express.static(PUBLIC_DIR));
+  if (options.pages) {
+    app.use(servePages(options.pages));
+  } else {
+    app.use(express.static(PUBLIC_DIR));
+  }
 
   app.use((error, _req, res, _next) => {
     console.error(error);

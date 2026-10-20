@@ -3,5 +3,6 @@ node_modules/
 .env.local
 npm-debug.log*
 dist/
+src/embedded-pages.js
 
 src/test

@@ -117,11 +117,13 @@ function renderPreview(data) {
 
   const summary = data.summary;
   const sample = data.rows.find((row) => !row.flagged);
+  const blanks = sample ? sample.preferences.filter((preference) => preference.value == null).length : 0;
   const sampleText = sample
-    ? ` Row ${sample.rowNumber} becomes a Formal vote for ${sample.firstPreferenceCandidateId} with ${sample.preferences.length} preferences.`
+    ? ` Row ${sample.rowNumber} becomes a Formal vote for ${sample.firstPreferenceCandidateId} with ${sample.preferences.length} preferences${blanks ? ` (${blanks} blank)` : ''}.`
     : '';
+  const preferenceCount = summary.preferences ?? 0;
   document.querySelector('#preview-summary').textContent =
-    `${summary.dataRows} data rows: ${summary.valid} valid, ${summary.flagged} flagged.${sampleText}`;
+    `${summary.dataRows} data rows, ${preferenceCount} preferences: ${summary.valid} valid, ${summary.flagged} flagged.${sampleText}`;
 
   const headerMessages = [];
   if (data.electionIssue) headerMessages.push(data.electionIssue);

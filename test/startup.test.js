@@ -10,7 +10,10 @@ import {
   missingEnvMessage,
   openBrowser,
   resolveEnvFile,
+  locateSnapshotIndex,
   shouldHoldConsole,
+  shouldOpenBrowser,
+  snapshotIndexCandidates,
 } from '../src/startup.js';
 
 test('npm start reads .env from the working directory and the exe reads the folder it lives in', () => {
@@ -35,6 +38,26 @@ test('startup messages name the missing .env or COOKIE_SECRET and do not include
   assert.match(missingEnvMessage(envPath, false), /project folder/);
   assert.match(missingCookieSecretMessage(envPath), /COOKIE_SECRET is missing/);
   assert.doesNotMatch(missingCookieSecretMessage(envPath), /SECRET_VALUE/);
+});
+
+test('the browser stays closed when VOTELOADER_NO_BROWSER=1', () => {
+  assert.equal(shouldOpenBrowser({ VOTELOADER_NO_BROWSER: '1' }), false);
+  assert.equal(shouldOpenBrowser({}), true);
+});
+
+test('a Windows snapshot path is also tried as /snapshot and V:\\snapshot', () => {
+  const winPath = 'C:\\snapshot\\VoteLoader-main\\public\\index.html';
+  const posixPath = '/snapshot/VoteLoader-main/public/index.html';
+  assert.ok(snapshotIndexCandidates(winPath).includes(posixPath));
+  assert.ok(snapshotIndexCandidates(winPath).includes(`V:${posixPath}`));
+  assert.ok(snapshotIndexCandidates(winPath).includes('V:\\snapshot\\VoteLoader-main\\public\\index.html'));
+  const tried = [];
+  const found = locateSnapshotIndex(winPath, (candidate) => {
+    tried.push(candidate);
+    return candidate === posixPath;
+  });
+  assert.equal(found, posixPath);
+  assert.equal(tried[0], winPath);
 });
 
 test('the console stays open only when someone can press Enter', () => {
