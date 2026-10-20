@@ -34,7 +34,7 @@ test('npm start reads .env from the working directory and the exe reads the fold
 test('startup messages name the missing .env or COOKIE_SECRET and do not include secret values', () => {
   const envPath = path.join('/Apps', '.env');
   assert.match(missingEnvMessage(envPath, true), /VoteLoader\.exe/);
-  assert.match(missingEnvMessage(envPath, true), /\/Apps/);
+  assert.ok(missingEnvMessage(envPath, true).includes(envPath));
   assert.match(missingEnvMessage(envPath, false), /project folder/);
   assert.match(missingCookieSecretMessage(envPath), /COOKIE_SECRET is missing/);
   assert.doesNotMatch(missingCookieSecretMessage(envPath), /SECRET_VALUE/);
