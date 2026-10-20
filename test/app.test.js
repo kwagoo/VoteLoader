@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { once } from 'node:events';
 import test from 'node:test';
-import { createApp } from '../src/app.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createApp, publicDirectory } from '../src/app.js';
 
 const ELECTION = 'a0E000000000001';
 const ALICE = 'a01000000000001';
@@ -104,9 +107,16 @@ test('preview and upload wait for confirmation and skip flagged rows', async (t)
   assert.equal(inserts[0].records.length, 1);
   assert.equal(inserts[0].records[0].CurrentCandidate__c, ALICE);
   assert.equal(inserts[1].type, 'VotePreference__c');
+  assert.equal(inserts[1].records.length, 2);
   assert.equal(inserts[1].records[0].Vote__c, 'Vote__c-1-0');
+  assert.equal(inserts[1].records[0].CandidateId__c, ALICE);
+  assert.equal(inserts[1].records[0].NormalisedEntry__c, 1);
+  assert.equal(inserts[1].records[1].CandidateId__c, BOB);
+  assert.equal(inserts[1].records[1].NormalisedEntry__c, null);
+  assert.equal(events.at(-1).summary.preferencesCreated, 2);
   assert.match(events.at(-1).csv, /skipped/);
-  assert.match(events.at(-1).csv, /Vote__c-1-0/);
+  assert.match(events.at(-1).csv, /Vote__c-1-0,,2,0,/);
+  assert.equal(preview.summary.preferences, 4);
 });
 
 test('bad candidate headers are not uploaded', async (t) => {
@@ -277,4 +287,42 @@ test('callback sends the session PKCE verifier and keeps the connected user', as
       orgName: 'County Org',
     },
   });
+});
+
+test('the app serves the ballot pages from memory and from public/', async (t) => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const pages = {
+    'index.html': fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8'),
+    'styles.css': fs.readFileSync(path.join(root, 'public', 'styles.css'), 'utf8'),
+    'app.js': fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8'),
+  };
+  const app = createApp({ cookieSecret: 'test-secret', pages });
+  const running = await listen(app);
+  t.after(() => running.close());
+
+  const home = await fetch(`${running.base}/`);
+  assert.equal(home.status, 200);
+  assert.match(home.headers.get('content-type'), /text\/html/);
+  const html = await home.text();
+  assert.match(html, /Salesforce ballot loader/);
+  assert.match(html, /empty normalised entry/);
+
+  const css = await fetch(`${running.base}/styles.css`);
+  assert.equal(css.status, 200);
+  assert.match(await css.text(), /max-width: 880px/);
+
+  const script = await fetch(`${running.base}/app.js`);
+  assert.equal(script.status, 200);
+  assert.match(await script.text(), /preferences/);
+
+  const missing = await fetch(`${running.base}/secret.env`);
+  assert.equal(missing.status, 404);
+
+  const disk = createApp({ cookieSecret: 'test-secret' });
+  const diskRun = await listen(disk);
+  t.after(() => diskRun.close());
+  const fromDisk = await fetch(`${diskRun.base}/`);
+  assert.equal(fromDisk.status, 200);
+  assert.match(await fromDisk.text(), /Salesforce ballot loader/);
+  assert.equal(fs.existsSync(path.join(publicDirectory(), 'index.html')), true);
 });

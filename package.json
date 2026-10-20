@@ -9,9 +9,10 @@
   },
   "bin": "src/server.js",
   "scripts": {
+    "prestart": "node scripts/embed-pages.js",
     "start": "node src/server.js",
     "test": "node --test",
-    "build:exe": "pkg package.json --sea --targets node22-win-x64 --output dist/VoteLoader.exe"
+    "build:exe": "node scripts/embed-pages.js && pkg package.json --sea --targets node22-win-x64 --output dist/VoteLoader.exe"
   },
   "dependencies": {
     "dotenv": "^16.6.1",

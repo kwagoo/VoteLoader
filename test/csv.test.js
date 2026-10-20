@@ -45,7 +45,7 @@ test('parseCsv ignores a trailing blank line and keeps a blank candidate cell', 
   assert.deepEqual(parsed.rows[0], ['1', '1']);
 });
 
-test('each data row maps to one Formal vote and one preference per filled cell', () => {
+test('each data row maps to one Formal vote and one preference per candidate column', () => {
   const analysis = analyzeCsv(
     csv('7,2,1,\n8,1,,3\n'),
     ELECTION,
@@ -65,6 +65,7 @@ test('each data row maps to one Formal vote and one preference per filled cell',
     [
       [ALICE, 2],
       [BOB, 1],
+      [CAROL, null],
     ],
   );
 
@@ -82,24 +83,40 @@ test('each data row maps to one Formal vote and one preference per filled cell',
   assert.deepEqual(mapPreferences(first, 'a0V000000000009'), [
     { Vote__c: 'a0V000000000009', CandidateId__c: ALICE, NormalisedEntry__c: 2 },
     { Vote__c: 'a0V000000000009', CandidateId__c: BOB, NormalisedEntry__c: 1 },
+    { Vote__c: 'a0V000000000009', CandidateId__c: CAROL, NormalisedEntry__c: null },
   ]);
 
   const second = analysis.rows[1];
   assert.equal(second.firstPreferenceCandidateId, ALICE);
   assert.deepEqual(
-    second.preferences.map((pref) => pref.candidateId),
-    [ALICE, CAROL],
+    second.preferences.map((pref) => [pref.candidateId, pref.value]),
+    [
+      [ALICE, 1],
+      [BOB, null],
+      [CAROL, 3],
+    ],
   );
-  assert.equal(second.preferences[1].value, 3);
+  assert.equal(analysis.summary.preferences, 6);
 });
 
-test('blank cells do not become preference records', () => {
+test('blank cells become preference records with a null normalised entry', () => {
   const analysis = analyzeCsv(csv('6,1,,2\n'), ELECTION);
-  assert.equal(analysis.rows[0].preferences.length, 2);
+  assert.equal(analysis.rows[0].flagged, false);
+  assert.equal(analysis.rows[0].preferences.length, 3);
   assert.deepEqual(
-    analysis.rows[0].preferences.map((pref) => pref.candidateId),
-    [ALICE, CAROL],
+    analysis.rows[0].preferences.map((pref) => [pref.candidateId, pref.value]),
+    [
+      [ALICE, 1],
+      [BOB, null],
+      [CAROL, 2],
+    ],
   );
+  assert.deepEqual(mapPreferences(analysis.rows[0], 'a0V000000000009'), [
+    { Vote__c: 'a0V000000000009', CandidateId__c: ALICE, NormalisedEntry__c: 1 },
+    { Vote__c: 'a0V000000000009', CandidateId__c: BOB, NormalisedEntry__c: null },
+    { Vote__c: 'a0V000000000009', CandidateId__c: CAROL, NormalisedEntry__c: 2 },
+  ]);
+  assert.equal(analysis.summary.preferences, 3);
 });
 
 test('column A is the ballot number and is never a preference', () => {
@@ -141,7 +158,10 @@ test('flags rows with no 1, more than one 1, and non-numeric cells', () => {
 
   assert.equal(analysis.rows[4].flagged, false);
   assert.equal(analysis.rows[4].firstPreferenceCandidateId, ALICE);
-  assert.equal(analysis.rows[4].preferences[0].value, 1);
+  assert.deepEqual(
+    analysis.rows[4].preferences.map((pref) => pref.value),
+    [1, null, null],
+  );
 
   assert.equal(analysis.summary.valid, 1);
   assert.equal(analysis.summary.flagged, 4);

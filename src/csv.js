@@ -142,7 +142,15 @@ export function analyzeCsv(csvText, electionId) {
     const preferences = [];
     for (const column of candidateColumns) {
       const raw = padded[column.index] ?? '';
-      if (!raw) continue;
+      if (!raw) {
+        preferences.push({
+          candidateId: column.header,
+          columnIndex: column.index,
+          columnLetter: column.letter,
+          value: null,
+        });
+        continue;
+      }
       if (!WHOLE_NUMBER.test(raw)) {
         issues.push(`Column ${column.letter} value "${raw}" is not a whole number.`);
         continue;
@@ -191,6 +199,7 @@ export function analyzeCsv(csvText, electionId) {
       dataRows: rows.length,
       valid: rows.filter((row) => !row.flagged).length,
       flagged: rows.filter((row) => row.flagged).length,
+      preferences: rows.reduce((count, row) => count + row.preferences.length, 0),
     },
   };
 }

@@ -40,7 +40,7 @@
 
     <section id="upload-panel" class="card" hidden>
       <h2>Ballot CSV</h2>
-      <p class="lede">Column A is the ballot number. Every other header must be a Candidate record ID. A cell with <strong>1</strong> is that ballot’s first preference. Blank cells are skipped.</p>
+      <p class="lede">Column A is the ballot number. Every other header must be a Candidate record ID. A cell with <strong>1</strong> is that ballot’s first preference. A blank cell still creates a preference with an empty normalised entry.</p>
       <label class="field">
         Election record ID
         <input id="election-id" type="text" spellcheck="false" placeholder="15- or 18-character Election__c ID" autocomplete="off">
